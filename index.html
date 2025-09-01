@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>PARTS STORE</title>
+  <title>ДЕТАЛИ SKYMALL</title>
    <link rel="icon" type="image/png" href="https://i.postimg.cc/dtSpKx0W/1.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Google Identity Script -->
@@ -299,16 +299,18 @@
       font-weight: bold;
     }
 
+    /* ИЗМЕНЕНИЕ: Контейнер карточек с grid-раскладкой */
     .cards {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* 3 карточки в строке */
       gap: 20px;
+      max-width: 2800px;
+      margin: 0 auto;
+      padding: 0 20px;
     }
 
     .card {
       width: 100%;
-      max-width: 900px;
       background: #f0f2f5;
       border-radius: 16px;
       padding: 16px;
@@ -672,7 +674,7 @@
       gap: 10px;
       flex-wrap: nowrap;
       width: 100%;
-      max-width: 900px;
+      max-width: 2800px;
       margin: 50px auto; /* Автоматические отступы по бокам и 50px сверху/снизу */
     }
 
@@ -761,6 +763,7 @@
       text-align: center;
       font-size: 18px;
       color: #666;
+      grid-column: 1 / -1;
     }
 
     /* Стили для индикатора загрузки */
@@ -791,6 +794,30 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* Адаптивность для планшетов */
+    @media (max-width: 1200px) {
+      .cards {
+        grid-template-columns: repeat(2, 1fr); /* 2 карточки в строке */
+      }
+    }
+
+    /* Адаптивность для мобильных устройств - ИСПРАВЛЕНО */
+    @media (max-width: 768px) {
+      .cards {
+        grid-template-columns: 1fr; /* 1 карточка в строке */
+        padding: 0 10px;
+      }
+      
+      .top-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .card {
+        max-width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -804,12 +831,10 @@
   <div class="logo"><img src="https://i.postimg.cc/wjGzSY92/1.png" alt="Logo"></div>
   <div class="site-name">
     <div class="site-name-dropdown" onclick="toggleSitesDropdown(event)">
-      PARTS STORE
+      SKYMALL
       <div class="dropdown-sites" id="sitesDropdown">
-        <a href="https://smart-bowling.github.io/PARTS-SKYMALL/">SKYMALL</a>
         <a href="https://smart-bowling.github.io/PARTS-BB/">BLOCKBUSTER</a>
         <a href="https://smart-bowling.github.io/PARTS-KH/">LUCKY STRIKE KH</a>
-      
       </div>
     </div>
   </div>
@@ -851,20 +876,11 @@
       </select>
     </div>
     
-  <button id="btnSearch" class="btn-top">
-    <i class="fas fa-search"></i> Поиск
-  </button>
-
-  <button id="btnReset" class="btn-top">
-    <i class="fas fa-sync-alt"></i> Сбросить
-  </button>
-
-
-  <button onclick="window.open('https://smart-bowling.github.io/ADD-PARTS-STORE/', '_blank')" class="btn-top">
-    <i class="fas fa-plus-circle"></i> Добавить деталь
-  </button>
-</div>
-
+    <button id="btnSearch" class="btn-top"><i class="fas fa-search"></i> Поиск</button>
+   <button id="btnReset" class="btn-top"><i class="fas fa-sync-alt"></i> Сбросить</button>
+    <button onclick="window.open('...', '_blank')" class="btn-top"><i class="fas fa-book"></i> Магазин</button>
+    <button onclick="window.open('https://smart-bowling.github.io/ADD-PARTS-SKYMALL/', '_blank')" class="btn-top"><i class="fas fa-plus-circle"></i> Добавить деталь</button>
+  </div>
 
   <div class="cards" id="cardsContainer"></div>
 
@@ -962,13 +978,13 @@
 
   // Инициализация приложения
   function initApp() {
-    const API_URL = "https://script.google.com/macros/s/AKfycbxTzuWxKWjgBqUTup5iTSXqQDUjC4BHXAPpWBApQJ0ipvDm0oPKH3_Y1AbtPgiPiZFuIg/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxhEaO_tIA9U0-KapMdmPoyNFaMitqKdKZG94duQBfSpLo8MhTfTQJufgoo3EGiRQ/exec";
 
     let allEntries = [];
     let currentEntries = [];
     let currentPage = 1;
     let totalPages = 1;
-    const cardsPerPage = 5;
+    const cardsPerPage = 9; // Изменено на 9 (кратно 3)
 
     // Основные функции приложения
     async function getEntries() {
@@ -1004,7 +1020,7 @@
     async function getHistory(partNumber) {
       showLoader(true);
       try {
-        const res = await fetch(`${API_URL}?action=getHistory&partNumber=${encodeURIComponent(partNumber)}`);
+        const res = await fetch(`${API_URL?action=getHistory&partNumber=${encodeURIComponent(partNumber)}`);
         return await res.text();
       } finally {
         showLoader(false);
