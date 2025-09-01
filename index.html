@@ -923,8 +923,8 @@
 
   // Настройки авторизации
   const allowedEmails = ["vadiksss900@gmail.com", "sergey99belov@gmail.com"];
-  // Эмейлы с ограниченным доступом
-  const restrictedEmails = ["bowlingblock.b@gmail.com", "limited@example.com"]; // Замените на реальные email
+  // Эмейлы с ограниченным доступом (добавьте нужные email сюда)
+  const restrictedEmails = ["restricted@example.com", "limited@example.com"];
 
   // Обработчик ответе от Google
   function handleCredentialResponse(response) {
@@ -933,6 +933,7 @@
       const data = parseJwt(response.credential);
       const email = data.email;
 
+      // Разрешаем вход как разрешенным, так и ограниченным пользователям
       if (allowedEmails.includes(email) || restrictedEmails.includes(email)) {
         localStorage.setItem("userEmail", email);
         location.reload();
@@ -947,6 +948,7 @@
   // Проверка авторизации при загрузке страницы
   window.onload = () => {
     const userEmail = localStorage.getItem("userEmail");
+    // Разрешаем доступ как разрешенным, так и ограниченным пользователям
     if (userEmail && (allowedEmails.includes(userEmail) || restrictedEmails.includes(userEmail))) {
       document.getElementById("login").style.display = "none";
       document.getElementById("content").style.display = "block";
@@ -1033,7 +1035,7 @@
     async function deleteEntry(rowIndex) {
       showLoader(true);
       try {
-        const res = await fetch(`${API_URL}?action=deleteEntry&rowIndex=${rowIndex}`);
+        const res = await fetch(`${API_URL?action=deleteEntry&rowIndex=${rowIndex}`);
         return await res.json();
       } finally {
         showLoader(false);
@@ -1464,7 +1466,10 @@
     });
 
     document.getElementById('btnAddPart')?.addEventListener('click', () => {
-      if (isRestricted) return; // Запрещаем добавление деталей для ограниченных пользователей
+      if (isRestricted) {
+        alert('Доступ запрещен для вашего аккаунта');
+        return;
+      }
       window.open('https://smart-bowling.github.io/ADD-PARTS-STORE/', '_blank');
     });
 
@@ -1500,7 +1505,7 @@
       document.getElementById('modalOverlay').style.display = 'none';
     });
 
-    document.getElementById('modalOverlay')?.addEventListener('click', (e) {
+    document.getElementById('modalOverlay')?.addEventListener('click', (e) => {
       if (e.target === document.getElementById('modalOverlay')) {
         document.getElementById('modalOverlay').style.display = 'none';
       }
