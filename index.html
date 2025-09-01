@@ -788,8 +788,19 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+     0% { transform: rotate(0deg); }
+     100% { transform: rotate(360deg); }
+    }
+    
+    /* Стили для отключенных кнопок */
+    .btn-disabled {
+      opacity: 0.5;
+      cursor: not-allowed !important;
+      pointer-events: none;
+    }
+    
+    .hidden {
+      display: none !important;
     }
   </style>
 </head>
@@ -859,12 +870,10 @@
     <i class="fas fa-sync-alt"></i> Сбросить
   </button>
 
-
-  <button onclick="window.open('https://smart-bowling.github.io/ADD-PARTS-STORE/', '_blank')" class="btn-top">
+  <button id="btnAddPart" class="btn-top">
     <i class="fas fa-plus-circle"></i> Добавить деталь
   </button>
 </div>
-
 
   <div class="cards" id="cardsContainer"></div>
 
@@ -914,6 +923,8 @@
 
   // Настройки авторизации
   const allowedEmails = ["vadiksss900@gmail.com", "sergey99belov@gmail.com"];
+  // Эмейлы с ограниченным доступом
+  const restrictedEmails = ["bowlingblock.b@gmail.com", "limited@example.com"]; // Замените на реальные email
 
   // Обработчик ответе от Google
   function handleCredentialResponse(response) {
@@ -922,7 +933,7 @@
       const data = parseJwt(response.credential);
       const email = data.email;
 
-      if (allowedEmails.includes(email)) {
+      if (allowedEmails.includes(email) || restrictedEmails.includes(email)) {
         localStorage.setItem("userEmail", email);
         location.reload();
       } else {
@@ -936,7 +947,7 @@
   // Проверка авторизации при загрузке страницы
   window.onload = () => {
     const userEmail = localStorage.getItem("userEmail");
-    if (userEmail && allowedEmails.includes(userEmail)) {
+    if (userEmail && (allowedEmails.includes(userEmail) || restrictedEmails.includes(userEmail))) {
       document.getElementById("login").style.display = "none";
       document.getElementById("content").style.display = "block";
       initApp();
@@ -960,6 +971,12 @@
     nextPage: function() {}
   };
 
+  // Проверка, является ли пользователь ограниченным
+  function isRestrictedUser() {
+    const userEmail = localStorage.getItem("userEmail");
+    return restrictedEmails.includes(userEmail);
+  }
+
   // Инициализация приложения
   function initApp() {
     const API_URL = "https://script.google.com/macros/s/AKfycbw-0OOaPe8sCCHW6BEhmcCJi0nRK00b3WF3dprlBcXqQIS1toSOhNhGUqFkx9AOs3pg/exec";
@@ -969,6 +986,17 @@
     let currentPage = 1;
     let totalPages = 1;
     const cardsPerPage = 5;
+
+    // Проверяем, является ли пользователь ограниченным
+    const isRestricted = isRestrictedUser();
+    
+    // Если пользователь ограничен, скрываем кнопки в верхней панели
+    if (isRestricted) {
+      const btnAddPart = document.getElementById('btnAddPart');
+      if (btnAddPart) {
+        btnAddPart.classList.add('hidden');
+      }
+    }
 
     // Основные функции приложения
     async function getEntries() {
@@ -1081,6 +1109,11 @@
       rem.textContent = 'Х';
       media.append(rem);
 
+      // Если пользователь ограничен, скрываем кнопку удаления
+      if (isRestricted) {
+        rem.classList.add('hidden');
+      }
+
       div.append(media);
 
       // Добавляем блок с названием детали
@@ -1096,6 +1129,11 @@
       editButton.className = 'part-name-edit-btn';
       editButton.innerHTML = '<i class="fas fa-edit"></i>';
       editButton.title = 'Редактировать название';
+      
+      // Если пользователь ограничен, скрываем кнопку редактирования
+      if (isRestricted) {
+        editButton.classList.add('hidden');
+      }
       
       partNameContainer.appendChild(partNameText);
       partNameContainer.appendChild(editButton);
@@ -1125,11 +1163,20 @@
       btnTake.className = 'btn btn-take';
       btnTake.innerHTML = '<i class="fas fa-shopping-cart"></i> ВЗЯТЬ';
 
+      // Если пользователь ограничен, отключаем кнопки
+      if (isRestricted) {
+        btnAdd.classList.add('btn-disabled');
+        btnInfo.classList.add('btn-disabled');
+        btnTake.classList.add('btn-disabled');
+      }
+
       controls.append(pill, qtyInput, btnAdd, btnInfo, btnTake);
       div.append(controls);
 
       // Обработчик клика для кнопки редактирования
       editButton.addEventListener('click', function() {
+        if (isRestricted) return; // Запрещаем редактирование для ограниченных пользователей
+        
         const partNumber = partNameContainer.dataset.partNumber;
         const currentName = partNameText.textContent;
         
@@ -1203,6 +1250,8 @@
       });
 
       rem.onclick = async () => {
+        if (isRestricted) return; // Запрещаем удаление для ограниченных пользователей
+        
         if (confirm('Удалить эту запись?')) {
           await deleteEntry(entry.rowIndex);
           allEntries = allEntries.filter(e => e.rowIndex !== entry.rowIndex);
@@ -1214,6 +1263,8 @@
       };
 
       btnAdd.onclick = async () => {
+        if (isRestricted) return; // Запрещаем добавление для ограниченных пользователей
+        
         const deltaStr = prompt('Введите число для добавления:');
         const delta = Number(deltaStr);
         if (deltaStr !== null && !isNaN(delta)) {
@@ -1229,6 +1280,8 @@
 
       // Измененный обработчик для кнопки ВЗЯТЬ - используем стандартный prompt
       btnTake.onclick = async () => {
+        if (isRestricted) return; // Запрещаем взятие для ограниченных пользователей
+        
         const quantity = prompt('Введите количество для вычитания:');
         if (quantity === null) return; // Пользователь отменил
         
@@ -1256,6 +1309,8 @@
       };
 
       btnInfo.onclick = async () => {
+        if (isRestricted) return; // Запрещаем просмотр истории для ограниченных пользователей
+        
         const hist = await getHistory(entry.partNumber);
         document.getElementById('modalContent').textContent = hist;
         document.getElementById('modalOverlay').style.display = 'flex';
@@ -1408,6 +1463,11 @@
       document.getElementById('sortSelect').value = 'all';
     });
 
+    document.getElementById('btnAddPart')?.addEventListener('click', () => {
+      if (isRestricted) return; // Запрещаем добавление деталей для ограниченных пользователей
+      window.open('https://smart-bowling.github.io/ADD-PARTS-STORE/', '_blank');
+    });
+
     document.getElementById('sortSelect')?.addEventListener('change', async function() {
       showLoader(true);
       try {
@@ -1440,7 +1500,7 @@
       document.getElementById('modalOverlay').style.display = 'none';
     });
 
-    document.getElementById('modalOverlay')?.addEventListener('click', (e) => {
+    document.getElementById('modalOverlay')?.addEventListener('click', (e) {
       if (e.target === document.getElementById('modalOverlay')) {
         document.getElementById('modalOverlay').style.display = 'none';
       }
