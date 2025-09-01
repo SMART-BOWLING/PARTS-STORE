@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>ДЕТАЛИ SKYMALL</title>
+  <title>PARTS STORE</title>
    <link rel="icon" type="image/png" href="https://i.postimg.cc/dtSpKx0W/1.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Google Identity Script -->
@@ -299,18 +299,16 @@
       font-weight: bold;
     }
 
-    /* ИЗМЕНЕНИЕ: Контейнер карточек с grid-раскладкой */
     .cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr); /* 3 карточки в строке */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       gap: 20px;
-      max-width: 2800px;
-      margin: 0 auto;
-      padding: 0 20px;
     }
 
     .card {
       width: 100%;
+      max-width: 900px;
       background: #f0f2f5;
       border-radius: 16px;
       padding: 16px;
@@ -666,6 +664,85 @@
       border-left: 4px solid #dc143c;
     }
 
+    /* Стили для модального окна взятия детали */
+    .take-modal {
+      position: relative;
+      background: #fff;
+      border-radius: 16px;
+      padding: 30px;
+      width: 90vw;
+      max-width: 500px;
+      z-index: 10000;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      animation: modalAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .take-modal h3 {
+      margin-top: 0;
+      font-size: 24px;
+      color: #1a2f40;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f2f5;
+      text-align: center;
+    }
+
+    .take-modal label {
+      display: block;
+      margin: 15px 0 5px;
+      font-weight: bold;
+      color: #1a2f40;
+    }
+
+    .take-modal input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    .take-modal input:focus {
+      outline: none;
+      border-color: #dc143c;
+    }
+
+    .take-modal-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      gap: 10px;
+    }
+
+    .take-modal-buttons button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .take-modal-cancel {
+      background: #6c757d;
+      color: white;
+    }
+
+    .take-modal-cancel:hover {
+      background: #5a6268;
+    }
+
+    .take-modal-confirm {
+      background: #dc143c;
+      color: white;
+    }
+
+    .take-modal-confirm:hover {
+      background: #c11236;
+    }
+
     .pagination {
       display: flex;
       justify-content: center;
@@ -674,7 +751,7 @@
       gap: 10px;
       flex-wrap: nowrap;
       width: 100%;
-      max-width: 2800px;
+      max-width: 900px;
       margin: 50px auto; /* Автоматические отступы по бокам и 50px сверху/снизу */
     }
 
@@ -763,7 +840,6 @@
       text-align: center;
       font-size: 18px;
       color: #666;
-      grid-column: 1 / -1;
     }
 
     /* Стили для индикатора загрузки */
@@ -794,30 +870,6 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-
-    /* Адаптивность для планшетов */
-    @media (max-width: 1200px) {
-      .cards {
-        grid-template-columns: repeat(2, 1fr); /* 2 карточки в строке */
-      }
-    }
-
-    /* Адаптивность для мобильных устройств - ИСПРАВЛЕНО */
-    @media (max-width: 768px) {
-      .cards {
-        grid-template-columns: 1fr; /* 1 карточка в строке */
-        padding: 0 10px;
-      }
-      
-      .top-controls {
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-      
-      .card {
-        max-width: 100%;
-      }
-    }
   </style>
 </head>
 <body>
@@ -831,10 +883,12 @@
   <div class="logo"><img src="https://i.postimg.cc/wjGzSY92/1.png" alt="Logo"></div>
   <div class="site-name">
     <div class="site-name-dropdown" onclick="toggleSitesDropdown(event)">
-      SKYMALL
+      PARTS STORE
       <div class="dropdown-sites" id="sitesDropdown">
+        <a href="https://smart-bowling.github.io/PARTS-SKYMALL/">SKYMALL</a>
         <a href="https://smart-bowling.github.io/PARTS-BB/">BLOCKBUSTER</a>
         <a href="https://smart-bowling.github.io/PARTS-KH/">LUCKY STRIKE KH</a>
+      
       </div>
     </div>
   </div>
@@ -876,11 +930,20 @@
       </select>
     </div>
     
-    <button id="btnSearch" class="btn-top"><i class="fas fa-search"></i> Поиск</button>
-   <button id="btnReset" class="btn-top"><i class="fas fa-sync-alt"></i> Сбросить</button>
-    <button onclick="window.open('...', '_blank')" class="btn-top"><i class="fas fa-book"></i> Магазин</button>
-    <button onclick="window.open('https://smart-bowling.github.io/ADD-PARTS-SKYMALL/', '_blank')" class="btn-top"><i class="fas fa-plus-circle"></i> Добавить деталь</button>
-  </div>
+  <button id="btnSearch" class="btn-top">
+    <i class="fas fa-search"></i> Поиск
+  </button>
+
+  <button id="btnReset" class="btn-top">
+    <i class="fas fa-sync-alt"></i> Сбросить
+  </button>
+
+
+  <button onclick="window.open('https://smart-bowling.github.io/ADD-PARTS-STORE/', '_blank')" class="btn-top">
+    <i class="fas fa-plus-circle"></i> Добавить деталь
+  </button>
+</div>
+
 
   <div class="cards" id="cardsContainer"></div>
 
@@ -895,6 +958,21 @@
       <div id="modalClose" class="modal-close">×</div>
       <h3>История изменений</h3>
       <pre id="modalContent"></pre>
+    </div>
+  </div>
+
+  <!-- Модальное окно для взятия детали -->
+  <div id="takeModalOverlay" class="modal-overlay" style="display: none;">
+    <div class="take-modal">
+      <h3>Взять деталь</h3>
+      <label for="takeQuantity">Количество:</label>
+      <input type="number" id="takeQuantity" min="1" value="1">
+      <label for="takeName">Имя/Телефон:</label>
+      <input type="text" id="takeName" placeholder="Введите имя или номер телефона">
+      <div class="take-modal-buttons">
+        <button class="take-modal-cancel" onclick="closeTakeModal()">Отмена</button>
+        <button class="take-modal-confirm" onclick="confirmTake()">Подтвердить</button>
+      </div>
     </div>
   </div>
 </div>
@@ -970,6 +1048,51 @@
     return JSON.parse(jsonPayload);
   }
 
+  // Глобальные переменные для модального окна взятия
+  let currentTakeEntry = null;
+  let currentTakeQtyInput = null;
+
+  // Функции для работы с модальным окном взятия
+  function openTakeModal(entry, qtyInput) {
+    currentTakeEntry = entry;
+    currentTakeQtyInput = qtyInput;
+    document.getElementById('takeQuantity').value = 1;
+    document.getElementById('takeName').value = '';
+    document.getElementById('takeModalOverlay').style.display = 'flex';
+  }
+
+  function closeTakeModal() {
+    document.getElementById('takeModalOverlay').style.display = 'none';
+    currentTakeEntry = null;
+    currentTakeQtyInput = null;
+  }
+
+  async function confirmTake() {
+    const quantity = parseInt(document.getElementById('takeQuantity').value);
+    const name = document.getElementById('takeName').value.trim();
+    
+    if (isNaN(quantity) || quantity <= 0) {
+      alert('Пожалуйста, введите корректное количество');
+      return;
+    }
+    
+    if (!name) {
+      alert('Пожалуйста, введите имя или номер телефона');
+      return;
+    }
+    
+    closeTakeModal();
+    
+    // Здесь будет вызов функции для обновления количества с передачей имени
+    const res = await updateQuantityWithName(currentTakeEntry.partNumber, -quantity, name);
+    if (res.status === 'success') {
+      currentTakeQtyInput.value = res.quantity;
+      currentTakeEntry.quantity = res.quantity;
+    } else {
+      alert(res.message);
+    }
+  }
+
   // Глобальный объект для пагинации
   const pagination = {
     prevPage: function() {},
@@ -978,13 +1101,13 @@
 
   // Инициализация приложения
   function initApp() {
-    const API_URL = "https://script.google.com/macros/s/AKfycbxhEaO_tIA9U0-KapMdmPoyNFaMitqKdKZG94duQBfSpLo8MhTfTQJufgoo3EGiRQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxTzuWxKWjgBqUTup5iTSXqQDUjC4BHXAPpWBApQJ0ipvDm0oPKH3_Y1AbtPgiPiZFuIg/exec";
 
     let allEntries = [];
     let currentEntries = [];
     let currentPage = 1;
     let totalPages = 1;
-    const cardsPerPage = 9; // Изменено на 9 (кратно 3)
+    const cardsPerPage = 5;
 
     // Основные функции приложения
     async function getEntries() {
@@ -1007,6 +1130,17 @@
       }
     }
 
+    // Новая функция для обновления количества с именем
+    async function updateQuantityWithName(partNumber, delta, name) {
+      showLoader(true);
+      try {
+        const res = await fetch(`${API_URL}?action=updateQuantityWithName&partNumber=${encodeURIComponent(partNumber)}&delta=${delta}&name=${encodeURIComponent(name)}`);
+        return await res.json();
+      } finally {
+        showLoader(false);
+      }
+    }
+
     async function deleteEntry(rowIndex) {
       showLoader(true);
       try {
@@ -1020,7 +1154,7 @@
     async function getHistory(partNumber) {
       showLoader(true);
       try {
-        const res = await fetch(`${API_URL?action=getHistory&partNumber=${encodeURIComponent(partNumber)}`);
+        const res = await fetch(`${API_URL}?action=getHistory&partNumber=${encodeURIComponent(partNumber)}`);
         return await res.text();
       } finally {
         showLoader(false);
@@ -1232,18 +1366,9 @@
         }
       };
 
-      btnTake.onclick = async () => {
-        const deltaStr = prompt('Введите число для вычитания:');
-        const delta = Number(deltaStr);
-        if (deltaStr !== null && !isNaN(delta)) {
-          const res = await updateQuantity(entry.partNumber, -delta);
-          if (res.status === 'success') {
-            qtyInput.value = res.quantity;
-            entry.quantity = res.quantity;
-          } else {
-            alert(res.message);
-          }
-        }
+      // Измененный обработчик для кнопки ВЗЯТЬ
+      btnTake.onclick = () => {
+        openTakeModal(entry, qtyInput);
       };
 
       btnInfo.onclick = async () => {
