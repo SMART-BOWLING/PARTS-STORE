@@ -849,11 +849,20 @@
       </select>
     </div>
     
-    <button id="btnSearch" class="btn-top"><i class="fas fa-search"></i> Поиск</button>
-   <button id="btnReset" class="btn-top"><i class="fas fa-sync-alt"></i> Сбросить</button>
-<button class="btn-top"><i class="fas fa-store"></i> Магазин</button>
-    <button onclick="window.open('https://smart-bowling.github.io/ADD-PARTS-SKYMALL/', '_blank')" class="btn-top"><i class="fas fa-plus-circle"></i> Добавить деталь</button>
-  </div>
+  <button id="btnSearch" class="btn-top">
+    <i class="fas fa-search"></i> Поиск
+  </button>
+
+  <button id="btnReset" class="btn-top">
+    <i class="fas fa-sync-alt"></i> Сбросить
+  </button>
+
+
+  <button onclick="window.open('https://smart-bowling.github.io/ADD-PARTS-SKYMALL/', '_blank')" class="btn-top">
+    <i class="fas fa-plus-circle"></i> Добавить деталь
+  </button>
+</div>
+
 
   <div class="cards" id="cardsContainer"></div>
 
@@ -951,7 +960,7 @@
 
   // Инициализация приложения
   function initApp() {
-    const API_URL = "https://script.google.com/macros/s/AKfycbxhEaO_tIA9U0-KapMdmPoyNFaMitqKdKZG94duQBfSpLo8MhTfTQJufgoo3EG";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxhEaO_tIA9U0-KapMdmPoyNFaMitqKdKZG94duQBfSpLo8MhTfTQJufgoo3EGiRQ/exec";
 
     let allEntries = [];
     let currentEntries = [];
