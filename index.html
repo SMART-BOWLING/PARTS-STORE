@@ -909,9 +909,8 @@
 
   // Настройки авторизации
   const allowedEmails = ["vadiksss900@gmail.com", "sashavolobuev123890@gmail.com"];
-  
-  // Email-адреса с ограниченными правами (только просмотр)
-  const restrictedEmails = ["example@restricted.com", "viewonly@example.com"]; // Добавьте нужные email-адреса
+  // Email-адреса с ограниченными правами
+  const restrictedEmails = ["bowlingblock.b@gmail.com"]; // Добавьте сюда email-адреса с ограниченными правами
 
   // Обработчик ответе от Google
   function handleCredentialResponse(response) {
@@ -934,7 +933,7 @@
   // Проверка авторизации при загрузке страницы
   window.onload = () => {
     const userEmail = localStorage.getItem("userEmail");
-    if (userEmail && (allowedEmails.includes(userEmail) || restrictedEmails.includes(userEmail))) {
+    if ((userEmail && allowedEmails.includes(userEmail)) || (userEmail && restrictedEmails.includes(userEmail))) {
       document.getElementById("login").style.display = "none";
       document.getElementById("content").style.display = "block";
       initApp();
@@ -958,7 +957,7 @@
     nextPage: function() {}
   };
 
-  // Проверка, является ли текущий пользователь ограниченным
+  // Проверка, имеет ли пользователь ограниченные права
   function isRestrictedUser() {
     const userEmail = localStorage.getItem("userEmail");
     return restrictedEmails.includes(userEmail);
@@ -973,9 +972,13 @@
     let currentPage = 1;
     let totalPages = 1;
     const cardsPerPage = 5;
-
-    // Проверяем права пользователя
+    
     const isRestricted = isRestrictedUser();
+
+    // Скрываем кнопки для ограниченных пользователей
+    if (isRestricted) {
+      document.getElementById('btnAddPart').style.display = 'none';
+    }
 
     // Основные функции приложения
     async function getEntries() {
@@ -991,7 +994,7 @@
     async function updateQuantity(partNumber, delta) {
       showLoader(true);
       try {
-        const res = await fetch(`${API_URL?action=updateQuantity&partNumber=${encodeURIComponent(partNumber)}&delta=${delta}`);
+        const res = await fetch(`${API_URL}?action=updateQuantity&partNumber=${encodeURIComponent(partNumber)}&delta=${delta}`);
         return await res.json();
       } finally {
         showLoader(false);
@@ -1089,17 +1092,6 @@
         rem.className = 'icon remove';
         rem.textContent = 'Х';
         media.append(rem);
-
-        rem.onclick = async () => {
-          if (confirm('Удалить эту запись?')) {
-            await deleteEntry(entry.rowIndex);
-            allEntries = allEntries.filter(e => e.rowIndex !== entry.rowIndex);
-            currentEntries = currentEntries.filter(e => e.rowIndex !== entry.rowIndex);
-            updateTotalPages();
-            if (currentPage > totalPages) currentPage = totalPages;
-            renderPage(currentPage);
-          }
-        };
       }
 
       div.append(media);
@@ -1120,6 +1112,50 @@
         editButton.innerHTML = '<i class="fas fa-edit"></i>';
         editButton.title = 'Редактировать название';
         
+        partNameContainer.appendChild(editButton);
+      }
+      
+      partNameContainer.appendChild(partNameText);
+      div.append(partNameContainer);
+
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+
+      const pill = document.createElement('div');
+      pill.className = 'pill';
+      pill.textContent = entry.partNumber;
+
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'text';
+      qtyInput.value = entry.quantity;
+      qtyInput.readOnly = true;
+
+      // Скрываем кнопки для ограниченных пользователей
+      if (!isRestricted) {
+        const btnAdd = document.createElement('button');
+        btnAdd.className = 'btn btn-add';
+        btnAdd.innerHTML = '<i class="fas fa-plus-circle"></i> ДОБАВИТЬ';
+        controls.append(btnAdd);
+      }
+
+      const btnInfo = document.createElement('button');
+      btnInfo.className = 'btn btn-info';
+      btnInfo.innerHTML = '<i class="fas fa-history"></i> ИСТОРИЯ';
+
+      // Скрываем кнопку "ВЗЯТЬ" для ограниченных пользователей
+      if (!isRestricted) {
+        const btnTake = document.createElement('button');
+        btnTake.className = 'btn btn-take';
+        btnTake.innerHTML = '<i class="fas fa-shopping-cart"></i> ВЗЯТЬ';
+        controls.append(btnTake);
+      }
+
+      controls.append(pill, qtyInput, btnInfo);
+      div.append(controls);
+
+      // Обработчик клика для кнопки редактирования (только для неограниченных пользователей)
+      if (!isRestricted) {
+        const editButton = partNameContainer.querySelector('.part-name-edit-btn');
         editButton.addEventListener('click', function() {
           const partNumber = partNameContainer.dataset.partNumber;
           const currentName = partNameText.textContent;
@@ -1192,31 +1228,26 @@
             // Не завершаем редактирование при потере фокуса
           });
         });
-        
-        partNameContainer.appendChild(editButton);
       }
-      
-      partNameContainer.appendChild(partNameText);
-      div.append(partNameContainer);
 
-      const controls = document.createElement('div');
-      controls.className = 'controls';
-
-      const pill = document.createElement('div');
-      pill.className = 'pill';
-      pill.textContent = entry.partNumber;
-
-      const qtyInput = document.createElement('input');
-      qtyInput.type = 'text';
-      qtyInput.value = entry.quantity;
-      qtyInput.readOnly = true;
-
-      // Скрываем кнопки для ограниченных пользователей
+      // Обработчик удаления (только для неограниченных пользователей)
       if (!isRestricted) {
-        const btnAdd = document.createElement('button');
-        btnAdd.className = 'btn btn-add';
-        btnAdd.innerHTML = '<i class="fas fa-plus-circle"></i> ДОБАВИТЬ';
+        const rem = media.querySelector('.remove');
+        rem.onclick = async () => {
+          if (confirm('Удалить эту запись?')) {
+            await deleteEntry(entry.rowIndex);
+            allEntries = allEntries.filter(e => e.rowIndex !== entry.rowIndex);
+            currentEntries = currentEntries.filter(e => e.rowIndex !== entry.rowIndex);
+            updateTotalPages();
+            if (currentPage > totalPages) currentPage = totalPages;
+            renderPage(currentPage);
+          }
+        };
+      }
 
+      // Обработчик кнопки ДОБАВИТЬ (только для неограниченных пользователей)
+      if (!isRestricted) {
+        const btnAdd = controls.querySelector('.btn-add');
         btnAdd.onclick = async () => {
           const deltaStr = prompt('Введите число для добавления:');
           const delta = Number(deltaStr);
@@ -1230,32 +1261,11 @@
             }
           }
         };
-
-        controls.append(btnAdd);
       }
 
-      // Кнопка истории - скрываем для ограниченных пользователей
+      // Обработчик кнопки ВЗЯТЬ (только для неограниченных пользователей)
       if (!isRestricted) {
-        const btnInfo = document.createElement('button');
-        btnInfo.className = 'btn btn-info';
-        btnInfo.innerHTML = '<i class="fas fa-history"></i> ИСТОРИЯ';
-
-        btnInfo.onclick = async () => {
-          const hist = await getHistory(entry.partNumber);
-          document.getElementById('modalContent').textContent = hist;
-          document.getElementById('modalOverlay').style.display = 'flex';
-        };
-
-        controls.append(btnInfo);
-      }
-
-      // Скрываем кнопку "Взять" для ограниченных пользователей
-      if (!isRestricted) {
-        const btnTake = document.createElement('button');
-        btnTake.className = 'btn btn-take';
-        btnTake.innerHTML = '<i class="fas fa-shopping-cart"></i> ВЗЯТЬ';
-
-        // Измененный обработчик для кнопки ВЗЯТЬ - используем стандартный prompt
+        const btnTake = controls.querySelector('.btn-take');
         btnTake.onclick = async () => {
           const quantity = prompt('Введите количество для вычитания:');
           if (quantity === null) return; // Пользователь отменил
@@ -1282,12 +1292,14 @@
             alert(res.message);
           }
         };
-
-        controls.append(btnTake);
       }
 
-      controls.append(pill, qtyInput);
-      div.append(controls);
+      // Обработчик кнопки ИСТОРИЯ (доступен всем)
+      btnInfo.onclick = async () => {
+        const hist = await getHistory(entry.partNumber);
+        document.getElementById('modalContent').textContent = hist;
+        document.getElementById('modalOverlay').style.display = 'flex';
+      };
 
       return div;
     }
