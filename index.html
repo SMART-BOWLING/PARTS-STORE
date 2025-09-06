@@ -911,7 +911,7 @@
   const allowedEmails = ["vadiksss900@gmail.com", "sashavolobuev123890@gmail.com"];
   
   // Email-адреса с ограниченными правами (только просмотр)
-  const restrictedEmails = ["example@restricted.com", "bowlingblock.b@gmail.com"]; // Добавьте нужные email-адреса
+  const restrictedEmails = ["example@restricted.com", "viewonly@example.com"]; // Добавьте нужные email-адреса
 
   // Обработчик ответе от Google
   function handleCredentialResponse(response) {
@@ -976,11 +976,6 @@
 
     // Проверяем права пользователя
     const isRestricted = isRestrictedUser();
-    
-    // Скрываем кнопки для ограниченных пользователей
-    if (isRestricted) {
-      document.getElementById('btnAddPart').style.display = 'none';
-    }
 
     // Основные функции приложения
     async function getEntries() {
@@ -996,7 +991,7 @@
     async function updateQuantity(partNumber, delta) {
       showLoader(true);
       try {
-        const res = await fetch(`${API_URL}?action=updateQuantity&partNumber=${encodeURIComponent(partNumber)}&delta=${delta}`);
+        const res = await fetch(`${API_URL?action=updateQuantity&partNumber=${encodeURIComponent(partNumber)}&delta=${delta}`);
         return await res.json();
       } finally {
         showLoader(false);
@@ -1239,18 +1234,20 @@
         controls.append(btnAdd);
       }
 
-      // Кнопка истории всегда видна
-      const btnInfo = document.createElement('button');
-      btnInfo.className = 'btn btn-info';
-      btnInfo.innerHTML = '<i class="fas fa-history"></i> ИСТОРИЯ';
+      // Кнопка истории - скрываем для ограниченных пользователей
+      if (!isRestricted) {
+        const btnInfo = document.createElement('button');
+        btnInfo.className = 'btn btn-info';
+        btnInfo.innerHTML = '<i class="fas fa-history"></i> ИСТОРИЯ';
 
-      btnInfo.onclick = async () => {
-        const hist = await getHistory(entry.partNumber);
-        document.getElementById('modalContent').textContent = hist;
-        document.getElementById('modalOverlay').style.display = 'flex';
-      };
+        btnInfo.onclick = async () => {
+          const hist = await getHistory(entry.partNumber);
+          document.getElementById('modalContent').textContent = hist;
+          document.getElementById('modalOverlay').style.display = 'flex';
+        };
 
-      controls.append(btnInfo);
+        controls.append(btnInfo);
+      }
 
       // Скрываем кнопку "Взять" для ограниченных пользователей
       if (!isRestricted) {
