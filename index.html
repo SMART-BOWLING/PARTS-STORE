@@ -855,7 +855,7 @@
   </button>
 
 
-  <button onclick="window.open('https://smart-bowling.github.io/ADD-PARTS-STORE/', '_blank')" class="btn-top">
+  <button id="btnAddPart" class="btn-top">
     <i class="fas fa-plus-circle"></i> Добавить деталь
   </button>
 </div>
@@ -909,6 +909,9 @@
 
   // Настройки авторизации
   const allowedEmails = ["vadiksss900@gmail.com", "sashavolobuev123890@gmail.com"];
+  
+  // Email-адреса с ограниченными правами (только просмотр)
+  const restrictedEmails = ["example@restricted.com", "bowlingblock.b@gmail.com"]; // Добавьте нужные email-адреса
 
   // Обработчик ответе от Google
   function handleCredentialResponse(response) {
@@ -917,7 +920,7 @@
       const data = parseJwt(response.credential);
       const email = data.email;
 
-      if (allowedEmails.includes(email)) {
+      if (allowedEmails.includes(email) || restrictedEmails.includes(email)) {
         localStorage.setItem("userEmail", email);
         location.reload();
       } else {
@@ -931,7 +934,7 @@
   // Проверка авторизации при загрузке страницы
   window.onload = () => {
     const userEmail = localStorage.getItem("userEmail");
-    if (userEmail && allowedEmails.includes(userEmail)) {
+    if (userEmail && (allowedEmails.includes(userEmail) || restrictedEmails.includes(userEmail))) {
       document.getElementById("login").style.display = "none";
       document.getElementById("content").style.display = "block";
       initApp();
@@ -955,6 +958,12 @@
     nextPage: function() {}
   };
 
+  // Проверка, является ли текущий пользователь ограниченным
+  function isRestrictedUser() {
+    const userEmail = localStorage.getItem("userEmail");
+    return restrictedEmails.includes(userEmail);
+  }
+
   // Инициализация приложения
   function initApp() {
     const API_URL = "https://script.google.com/macros/s/AKfycbw-0OOaPe8sCCHW6BEhmcCJi0nRK00b3WF3dprlBcXqQIS1toSOhNhGUqFkx9AOs3pg/exec";
@@ -964,6 +973,14 @@
     let currentPage = 1;
     let totalPages = 1;
     const cardsPerPage = 5;
+
+    // Проверяем права пользователя
+    const isRestricted = isRestrictedUser();
+    
+    // Скрываем кнопки для ограниченных пользователей
+    if (isRestricted) {
+      document.getElementById('btnAddPart').style.display = 'none';
+    }
 
     // Основные функции приложения
     async function getEntries() {
@@ -1071,10 +1088,24 @@
       overlay.className = 'img-overlay';
       media.appendChild(overlay);
 
-      const rem = document.createElement('div');
-      rem.className = 'icon remove';
-      rem.textContent = 'Х';
-      media.append(rem);
+      // Скрываем кнопку удаления для ограниченных пользователей
+      if (!isRestricted) {
+        const rem = document.createElement('div');
+        rem.className = 'icon remove';
+        rem.textContent = 'Х';
+        media.append(rem);
+
+        rem.onclick = async () => {
+          if (confirm('Удалить эту запись?')) {
+            await deleteEntry(entry.rowIndex);
+            allEntries = allEntries.filter(e => e.rowIndex !== entry.rowIndex);
+            currentEntries = currentEntries.filter(e => e.rowIndex !== entry.rowIndex);
+            updateTotalPages();
+            if (currentPage > totalPages) currentPage = totalPages;
+            renderPage(currentPage);
+          }
+        };
+      }
 
       div.append(media);
 
@@ -1087,13 +1118,90 @@
       partNameText.className = 'part-name-text';
       partNameText.textContent = entry.partName || 'Название детали';
       
-      const editButton = document.createElement('button');
-      editButton.className = 'part-name-edit-btn';
-      editButton.innerHTML = '<i class="fas fa-edit"></i>';
-      editButton.title = 'Редактировать название';
+      // Скрываем кнопку редактирования для ограниченных пользователей
+      if (!isRestricted) {
+        const editButton = document.createElement('button');
+        editButton.className = 'part-name-edit-btn';
+        editButton.innerHTML = '<i class="fas fa-edit"></i>';
+        editButton.title = 'Редактировать название';
+        
+        editButton.addEventListener('click', function() {
+          const partNumber = partNameContainer.dataset.partNumber;
+          const currentName = partNameText.textContent;
+          
+          // Переходим в режим редактирования
+          partNameContainer.classList.add('editing');
+          
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'part-name-input';
+          input.value = currentName;
+          
+          const saveButton = document.createElement('button');
+          saveButton.className = 'part-name-save-btn';
+          saveButton.innerHTML = '<i class="fas fa-check"></i>';
+          saveButton.title = 'Сохранить';
+          
+          const cancelButton = document.createElement('button');
+          cancelButton.className = 'part-name-cancel-btn';
+          cancelButton.innerHTML = '<i class="fas fa-times"></i>';
+          cancelButton.title = 'Отменить';
+          
+          // Заменяем содержимое контейнера
+          partNameText.style.display = 'none';
+          editButton.style.display = 'none';
+          
+          partNameContainer.appendChild(input);
+          partNameContainer.appendChild(saveButton);
+          partNameContainer.appendChild(cancelButton);
+          
+          input.focus();
+          input.select();
+          
+          // Функция завершения редактирования
+          const finishEdit = async (save = false) => {
+            const newName = save ? input.value.trim() : currentName;
+            
+            partNameContainer.classList.remove('editing');
+            input.remove();
+            saveButton.remove();
+            cancelButton.remove();
+            
+            partNameText.style.display = '';
+            editButton.style.display = '';
+            
+            if (save && newName && newName !== currentName) {
+              const res = await updatePartName(partNumber, newName);
+              if (res.status === 'success') {
+                partNameText.textContent = newName;
+                // Обновляем название в массиве записей
+                const updatedEntry = allEntries.find(e => e.partNumber === partNumber);
+                if (updatedEntry) updatedEntry.partName = newName;
+              } else {
+                alert(res.message || 'Ошибка при обновлении названия');
+              }
+            }
+          };
+          
+          // Обработчики для кнопок
+          saveButton.addEventListener('click', () => finishEdit(true));
+          cancelButton.addEventListener('click', () => finishEdit(false));
+          
+          input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              finishEdit(true);
+            }
+          });
+          
+          input.addEventListener('blur', () => {
+            // Не завершаем редактирование при потере фокуса
+          });
+        });
+        
+        partNameContainer.appendChild(editButton);
+      }
       
       partNameContainer.appendChild(partNameText);
-      partNameContainer.appendChild(editButton);
       div.append(partNameContainer);
 
       const controls = document.createElement('div');
@@ -1108,153 +1216,81 @@
       qtyInput.value = entry.quantity;
       qtyInput.readOnly = true;
 
-      const btnAdd = document.createElement('button');
-      btnAdd.className = 'btn btn-add';
-      btnAdd.innerHTML = '<i class="fas fa-plus-circle"></i> ДОБАВИТЬ';
+      // Скрываем кнопки для ограниченных пользователей
+      if (!isRestricted) {
+        const btnAdd = document.createElement('button');
+        btnAdd.className = 'btn btn-add';
+        btnAdd.innerHTML = '<i class="fas fa-plus-circle"></i> ДОБАВИТЬ';
 
-      const btnInfo = document.createElement('button');
-      btnInfo.className = 'btn btn-info';
-      btnInfo.innerHTML = '<i class="fas fa-history"></i> ИСТОРИЯ';
-
-      const btnTake = document.createElement('button');
-      btnTake.className = 'btn btn-take';
-      btnTake.innerHTML = '<i class="fas fa-shopping-cart"></i> ВЗЯТЬ';
-
-      controls.append(pill, qtyInput, btnAdd, btnInfo, btnTake);
-      div.append(controls);
-
-      // Обработчик клика для кнопки редактирования
-      editButton.addEventListener('click', function() {
-        const partNumber = partNameContainer.dataset.partNumber;
-        const currentName = partNameText.textContent;
-        
-        // Переходим в режим редактирования
-        partNameContainer.classList.add('editing');
-        
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'part-name-input';
-        input.value = currentName;
-        
-        const saveButton = document.createElement('button');
-        saveButton.className = 'part-name-save-btn';
-        saveButton.innerHTML = '<i class="fas fa-check"></i>';
-        saveButton.title = 'Сохранить';
-        
-        const cancelButton = document.createElement('button');
-        cancelButton.className = 'part-name-cancel-btn';
-        cancelButton.innerHTML = '<i class="fas fa-times"></i>';
-        cancelButton.title = 'Отменить';
-        
-        // Заменяем содержимое контейнера
-        partNameText.style.display = 'none';
-        editButton.style.display = 'none';
-        
-        partNameContainer.appendChild(input);
-        partNameContainer.appendChild(saveButton);
-        partNameContainer.appendChild(cancelButton);
-        
-        input.focus();
-        input.select();
-        
-        // Функция завершения редактирования
-        const finishEdit = async (save = false) => {
-          const newName = save ? input.value.trim() : currentName;
-          
-          partNameContainer.classList.remove('editing');
-          input.remove();
-          saveButton.remove();
-          cancelButton.remove();
-          
-          partNameText.style.display = '';
-          editButton.style.display = '';
-          
-          if (save && newName && newName !== currentName) {
-            const res = await updatePartName(partNumber, newName);
+        btnAdd.onclick = async () => {
+          const deltaStr = prompt('Введите число для добавления:');
+          const delta = Number(deltaStr);
+          if (deltaStr !== null && !isNaN(delta)) {
+            const res = await updateQuantity(entry.partNumber, delta);
             if (res.status === 'success') {
-              partNameText.textContent = newName;
-              // Обновляем название в массиве записей
-              const updatedEntry = allEntries.find(e => e.partNumber === partNumber);
-              if (updatedEntry) updatedEntry.partName = newName;
+              qtyInput.value = res.quantity;
+              entry.quantity = res.quantity;
             } else {
-              alert(res.message || 'Ошибка при обновлении названия');
+              alert(res.message);
             }
           }
         };
-        
-        // Обработчики для кнопок
-        saveButton.addEventListener('click', () => finishEdit(true));
-        cancelButton.addEventListener('click', () => finishEdit(false));
-        
-        input.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter') {
-            finishEdit(true);
-          }
-        });
-        
-        input.addEventListener('blur', () => {
-          // Не завершаем редактирование при потере фокуса
-        });
-      });
 
-      rem.onclick = async () => {
-        if (confirm('Удалить эту запись?')) {
-          await deleteEntry(entry.rowIndex);
-          allEntries = allEntries.filter(e => e.rowIndex !== entry.rowIndex);
-          currentEntries = currentEntries.filter(e => e.rowIndex !== entry.rowIndex);
-          updateTotalPages();
-          if (currentPage > totalPages) currentPage = totalPages;
-          renderPage(currentPage);
-        }
-      };
+        controls.append(btnAdd);
+      }
 
-      btnAdd.onclick = async () => {
-        const deltaStr = prompt('Введите число для добавления:');
-        const delta = Number(deltaStr);
-        if (deltaStr !== null && !isNaN(delta)) {
-          const res = await updateQuantity(entry.partNumber, delta);
-          if (res.status === 'success') {
-            qtyInput.value = res.quantity;
-            entry.quantity = res.quantity;
-          } else {
-            alert(res.message);
-          }
-        }
-      };
-
-      // Измененный обработчик для кнопки ВЗЯТЬ - используем стандартный prompt
-      btnTake.onclick = async () => {
-        const quantity = prompt('Введите количество для вычитания:');
-        if (quantity === null) return; // Пользователь отменил
-        
-        const qtyNum = parseInt(quantity);
-        if (isNaN(qtyNum) || qtyNum <= 0) {
-          alert('Пожалуйста, введите корректное число');
-          return;
-        }
-        
-        const name = prompt('Введите имя или номер телефона:');
-        if (name === null) return; // Пользователь отменил
-        
-        if (!name.trim()) {
-          alert('Пожалуйста, введите имя или номер телефона');
-          return;
-        }
-        
-        const res = await updateQuantityWithName(entry.partNumber, -qtyNum, name.trim());
-        if (res.status === 'success') {
-          qtyInput.value = res.quantity;
-          entry.quantity = res.quantity;
-        } else {
-          alert(res.message);
-        }
-      };
+      // Кнопка истории всегда видна
+      const btnInfo = document.createElement('button');
+      btnInfo.className = 'btn btn-info';
+      btnInfo.innerHTML = '<i class="fas fa-history"></i> ИСТОРИЯ';
 
       btnInfo.onclick = async () => {
         const hist = await getHistory(entry.partNumber);
         document.getElementById('modalContent').textContent = hist;
         document.getElementById('modalOverlay').style.display = 'flex';
       };
+
+      controls.append(btnInfo);
+
+      // Скрываем кнопку "Взять" для ограниченных пользователей
+      if (!isRestricted) {
+        const btnTake = document.createElement('button');
+        btnTake.className = 'btn btn-take';
+        btnTake.innerHTML = '<i class="fas fa-shopping-cart"></i> ВЗЯТЬ';
+
+        // Измененный обработчик для кнопки ВЗЯТЬ - используем стандартный prompt
+        btnTake.onclick = async () => {
+          const quantity = prompt('Введите количество для вычитания:');
+          if (quantity === null) return; // Пользователь отменил
+          
+          const qtyNum = parseInt(quantity);
+          if (isNaN(qtyNum) || qtyNum <= 0) {
+            alert('Пожалуйста, введите корректное число');
+            return;
+          }
+          
+          const name = prompt('Введите имя или номер телефона:');
+          if (name === null) return; // Пользователь отменил
+          
+          if (!name.trim()) {
+            alert('Пожалуйста, введите имя или номер телефона');
+            return;
+          }
+          
+          const res = await updateQuantityWithName(entry.partNumber, -qtyNum, name.trim());
+          if (res.status === 'success') {
+            qtyInput.value = res.quantity;
+            entry.quantity = res.quantity;
+          } else {
+            alert(res.message);
+          }
+        };
+
+        controls.append(btnTake);
+      }
+
+      controls.append(pill, qtyInput);
+      div.append(controls);
 
       return div;
     }
@@ -1401,6 +1437,10 @@
       currentPage = 1;
       renderPage(currentPage);
       document.getElementById('sortSelect').value = 'all';
+    });
+
+    document.getElementById('btnAddPart')?.addEventListener('click', () => {
+      window.open('https://smart-bowling.github.io/ADD-PARTS-STORE/', '_blank');
     });
 
     document.getElementById('sortSelect')?.addEventListener('change', async function() {
